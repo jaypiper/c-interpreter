@@ -37,6 +37,9 @@ public:
    virtual void VisitDeclStmt(DeclStmt * declstmt) {
 	   mEnv->decl(declstmt);
    }
+   virtual void VisitIntegerLiteral(IntegerLiteral * intLiteral) {
+      mEnv->intLiteral(intLiteral);
+   }
 private:
    Environment * mEnv;
 };

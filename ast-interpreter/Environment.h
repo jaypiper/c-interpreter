@@ -1,7 +1,7 @@
 //==--- tools/clang-check/ClangInterpreter.cpp - Clang Interpreter tool --------------===//
 //===----------------------------------------------------------------------===//
 #include <stdio.h>
-
+#include <iostream>
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -102,6 +102,10 @@ public:
 		   }
 	   }
    }
+
+	void intLiteral(IntegerLiteral * intLiteral){
+		mStack.back().bindStmt(intLiteral, intLiteral->getValue().getSExtValue());
+	}
 
    void decl(DeclStmt * declstmt) {
 	   for (DeclStmt::decl_iterator it = declstmt->decl_begin(), ie = declstmt->decl_end();
