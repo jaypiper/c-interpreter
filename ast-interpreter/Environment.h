@@ -107,6 +107,12 @@ public:
 			int val_r = mStack.back().getStmtVal(right);
 			int val_l = mStack.back().getStmtVal(left);
 			mStack.back().bindStmt(bop, val_r * val_l);
+		} else if (bop->getOpcode() == BO_EQ){
+			int val_r = mStack.back().getStmtVal(right);
+			int val_l = mStack.back().getStmtVal(left);
+			mStack.back().bindStmt(bop, val_r == val_l);
+		} else {
+			assert(0 && "implement me!");
 		}
    }
 
