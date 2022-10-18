@@ -116,6 +116,13 @@ public:
 		}
    }
 
+	void unaryop(UnaryOperator* uop) {
+		int val = mStack.back().getStmtVal(uop->getSubExpr());
+		if(uop->getOpcode() == UO_Minus) {
+			mStack.back().bindStmt(uop, -val);
+		}
+	}
+
 	void intLiteral(IntegerLiteral * intLiteral){
 		mStack.back().bindStmt(intLiteral, intLiteral->getValue().getSExtValue());
 	}

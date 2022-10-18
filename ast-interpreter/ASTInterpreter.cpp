@@ -22,6 +22,10 @@ public:
 	   VisitStmt(bop);
 	   mEnv->binop(bop);
    }
+   virtual void VisitUnaryOperator(UnaryOperator * uop){
+      VisitStmt(uop);
+      mEnv->unaryop(uop);
+   }
    virtual void VisitDeclRefExpr(DeclRefExpr * expr) {
 	   VisitStmt(expr);
 	   mEnv->declref(expr);
