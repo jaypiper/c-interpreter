@@ -172,6 +172,17 @@ public:
 		   /// You could add your code here for Function call Return
 	   }
    }
+
+	Stmt* ifStmt(IfStmt * ifstmt){
+		Expr *cond = ifstmt->getCond();
+		int val = mStack.back().getStmtVal(cond);
+		if(val) {
+			Stmt* thenstmt = ifstmt->getThen();
+			return thenstmt;
+		} else {
+			return ifstmt->getElse();
+		}
+	}
 };
 
 

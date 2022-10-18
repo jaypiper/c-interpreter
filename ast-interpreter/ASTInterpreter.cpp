@@ -43,6 +43,12 @@ public:
    virtual void VisitVarDecl(VarDecl* varDecl) {
       mEnv->varDecl(varDecl);
    }
+   virtual void VisitIfStmt(IfStmt * ifStmt) {
+      Stmt* stmt = *(ifStmt->children().begin());
+      this->Visit(stmt);
+      VisitStmt(mEnv->ifStmt(ifStmt));
+   }
+
 private:
    Environment * mEnv;
 };
