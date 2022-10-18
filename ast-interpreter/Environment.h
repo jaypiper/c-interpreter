@@ -112,10 +112,22 @@ public:
 			   it != ie; ++ it) {
 		   Decl * decl = *it;
 		   if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
-			   mStack.back().bindDecl(vardecl, 0);
+				varDecl(vardecl);
 		   }
 	   }
    }
+
+	void varDecl(VarDecl* dec){
+		if (dec->hasInit()){
+			APValue* value = dec->evaluateValue();
+			assert(value->isInt());
+			mStack.back().bindDecl(dec, value->getInt().getExtValue());
+		} else {
+			mStack.back().bindDecl(dec, 0);
+		}
+		return;
+	}
+
    void declref(DeclRefExpr * declref) {
 	   mStack.back().setPC(declref);
 	   if (declref->getType()->isIntegerType()) {

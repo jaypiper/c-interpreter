@@ -40,6 +40,9 @@ public:
    virtual void VisitIntegerLiteral(IntegerLiteral * intLiteral) {
       mEnv->intLiteral(intLiteral);
    }
+   virtual void VisitVarDecl(VarDecl* varDecl) {
+      mEnv->varDecl(varDecl);
+   }
 private:
    Environment * mEnv;
 };
