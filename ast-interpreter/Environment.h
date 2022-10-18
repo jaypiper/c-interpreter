@@ -103,16 +103,20 @@ public:
 					mStack.back().bindDecl(vardecl, val);
 		   	}
 		   }
-	   } else if (bop->getOpcode() == BO_Mul){
+	   } else {
 			int val_r = mStack.back().getStmtVal(right);
 			int val_l = mStack.back().getStmtVal(left);
-			mStack.back().bindStmt(bop, val_r * val_l);
-		} else if (bop->getOpcode() == BO_EQ){
-			int val_r = mStack.back().getStmtVal(right);
-			int val_l = mStack.back().getStmtVal(left);
-			mStack.back().bindStmt(bop, val_r == val_l);
-		} else {
-			assert(0 && "implement me!");
+			int newval = 0;
+			switch(bop->getOpcode()){
+				case BO_Mul:	newval = val_r * val_l; break;
+				case BO_EQ:  	newval = val_r == val_l; break;
+				case BO_GT:  	newval = val_l > val_r; break;
+				case BO_LT:  	newval = val_l < val_r; break;
+				default:
+					std::cout << "op = " << bop->getOpcode() << std::endl;
+					assert(0 && "implement me!");
+			}
+			mStack.back().bindStmt(bop, newval);
 		}
    }
 
