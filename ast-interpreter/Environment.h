@@ -5,6 +5,7 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/OperationKinds.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
@@ -100,7 +101,11 @@ public:
 			   Decl * decl = declexpr->getFoundDecl();
 			   mStack.back().bindDecl(decl, val);
 		   }
-	   }
+	   } else if (bop->getOpcode() == BO_Mul){
+			int val_r = mStack.back().getStmtVal(right);
+			int val_l = mStack.back().getStmtVal(left);
+			mStack.back().bindStmt(bop, val_r * val_l);
+		}
    }
 
 	void intLiteral(IntegerLiteral * intLiteral){
