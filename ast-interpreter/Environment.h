@@ -99,7 +99,9 @@ public:
 		   mStack.back().bindStmt(left, val);
 		   if (DeclRefExpr * declexpr = dyn_cast<DeclRefExpr>(left)) {
 			   Decl * decl = declexpr->getFoundDecl();
-			   mStack.back().bindDecl(decl, val);
+				if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
+					mStack.back().bindDecl(vardecl, val);
+		   	}
 		   }
 	   } else if (bop->getOpcode() == BO_Mul){
 			int val_r = mStack.back().getStmtVal(right);
