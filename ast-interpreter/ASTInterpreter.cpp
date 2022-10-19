@@ -60,6 +60,17 @@ public:
          if(!isFinish) VisitStmt(whileStmt->getBody());
       }
    }
+   virtual void VisitForStmt(ForStmt* forStmt) {
+      VisitStmt(forStmt->getInit());
+      int isFinish = 0;
+      while(!isFinish) {
+         this->Visit(forStmt->getCond());
+         isFinish = mEnv->getTopStmtVal(forStmt->getCond()) == 0;
+         if(isFinish) break;
+         VisitStmt(forStmt->getBody());
+         this->Visit(forStmt->getInc());
+      }
+   }
 
 private:
    Environment * mEnv;

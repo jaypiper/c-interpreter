@@ -218,6 +218,10 @@ public:
 		if (val) return 0;  	// not finish
 		else return 1;			// is finish
 	}
+
+	int getTopStmtVal(Stmt* stmt){
+		return mStack.back().getStmtVal(stmt);
+	}
 };
 
 
