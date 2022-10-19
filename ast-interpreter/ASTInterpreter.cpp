@@ -56,7 +56,7 @@ public:
       int isFinish = 0;
       while(!isFinish){
          this->Visit(whileStmt->getCond());
-         isFinish = mEnv->whileStmt(whileStmt);
+         isFinish = mEnv->getTopStmtVal(whileStmt->getCond()) == 0;
          if(!isFinish) VisitStmt(whileStmt->getBody());
       }
    }
