@@ -50,24 +50,24 @@ public:
    virtual void VisitIfStmt(IfStmt * ifStmt) {
       Stmt* stmt = *(ifStmt->children().begin());
       this->Visit(stmt);
-      VisitStmt(mEnv->ifStmt(ifStmt));
+      this->Visit(mEnv->ifStmt(ifStmt));
    }
    virtual void VisitWhileStmt(WhileStmt* whileStmt){
       int isFinish = 0;
       while(!isFinish){
          this->Visit(whileStmt->getCond());
          isFinish = mEnv->getTopStmtVal(whileStmt->getCond()) == 0;
-         if(!isFinish) VisitStmt(whileStmt->getBody());
+         if(!isFinish) this->Visit(whileStmt->getBody());
       }
    }
    virtual void VisitForStmt(ForStmt* forStmt) {
-      VisitStmt(forStmt->getInit());
+      this->Visit(forStmt->getInit());
       int isFinish = 0;
       while(!isFinish) {
          this->Visit(forStmt->getCond());
          isFinish = mEnv->getTopStmtVal(forStmt->getCond()) == 0;
          if(isFinish) break;
-         VisitStmt(forStmt->getBody());
+         this->Visit(forStmt->getBody());
          this->Visit(forStmt->getInc());
       }
    }
