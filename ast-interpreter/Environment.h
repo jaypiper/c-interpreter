@@ -109,9 +109,21 @@ public:
 			int newval = 0;
 			switch(bop->getOpcode()){
 				case BO_Mul:	newval = val_r * val_l; break;
+				case BO_Add:   newval = val_l + val_r; break;
+				case BO_Sub:   newval = val_l - val_r; break;
+				case BO_Shl:   newval = val_l << val_r; break;
+				case BO_Shr:   newval = val_l >> val_r; break;
 				case BO_EQ:  	newval = val_r == val_l; break;
+				case BO_NE:  	newval = val_r != val_l; break;
 				case BO_GT:  	newval = val_l > val_r; break;
 				case BO_LT:  	newval = val_l < val_r; break;
+				case BO_LE:		newval = val_l <= val_r; break;
+				case BO_GE:		newval = val_l >= val_r; break;
+				case BO_And:  	newval = val_r & val_l; break;
+				case BO_Xor:  	newval = val_r ^ val_l; break;
+				case BO_Or:  	newval = val_r | val_l; break;
+				case BO_LAnd:  newval = val_r && val_l; break;
+				case BO_LOr:  	newval = val_r || val_l; break;
 				default:
 					std::cout << "op = " << bop->getOpcode() << std::endl;
 					assert(0 && "implement me!");
