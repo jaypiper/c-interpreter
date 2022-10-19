@@ -50,7 +50,9 @@ public:
    virtual void VisitIfStmt(IfStmt * ifStmt) {
       Stmt* stmt = *(ifStmt->children().begin());
       this->Visit(stmt);
-      this->Visit(mEnv->ifStmt(ifStmt));
+      Stmt* nextStmt = mEnv->ifStmt(ifStmt);
+      if(nextStmt)
+         this->Visit(nextStmt);
    }
    virtual void VisitWhileStmt(WhileStmt* whileStmt){
       int isFinish = 0;
