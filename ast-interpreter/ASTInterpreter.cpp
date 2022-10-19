@@ -52,6 +52,14 @@ public:
       this->Visit(stmt);
       VisitStmt(mEnv->ifStmt(ifStmt));
    }
+   virtual void VisitWhileStmt(WhileStmt* whileStmt){
+      int isFinish = 0;
+      while(!isFinish){
+         this->Visit(whileStmt->getCond());
+         isFinish = mEnv->whileStmt(whileStmt);
+         if(!isFinish) VisitStmt(whileStmt->getBody());
+      }
+   }
 
 private:
    Environment * mEnv;

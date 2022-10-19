@@ -212,6 +212,12 @@ public:
 			return ifstmt->getElse();
 		}
 	}
+
+	int whileStmt(WhileStmt* whilestmt){
+		int val = mStack.back().getStmtVal(whilestmt->getCond());
+		if (val) return 0;  	// not finish
+		else return 1;			// is finish
+	}
 };
 
 
