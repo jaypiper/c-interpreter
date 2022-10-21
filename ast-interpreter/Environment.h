@@ -31,6 +31,7 @@ class StackFrame {
 	std::vector<int> arrayVals;
    /// The current stmt
    Stmt * mPC;
+	Stmt * ret;
 public:
    StackFrame() : mVars(), mExprs(), mPC() {
    }
@@ -89,6 +90,12 @@ public:
    }
    Stmt * getPC() {
 	   return mPC;
+   }
+	void setret(Stmt * stmt) {
+	   ret = stmt;
+   }
+   Stmt * getret() {
+	   return ret;
    }
 };
 
@@ -332,23 +339,47 @@ public:
    }
 
    /// !TODO Support Function Call
-   void call(CallExpr * callexpr) {
+   FunctionDecl* call(CallExpr * callexpr) {
 	   mStack.back().setPC(callexpr);
 	   int val = 0;
 	   FunctionDecl * callee = callexpr->getDirectCallee();
 	   if (callee == mInput) {
 		  llvm::errs() << "Please Input an Integer Value : ";
 		  scanf("%d", &val);
-
 		  mStack.back().bindStmtInt(callexpr, val);
+		  return 0;
 	   } else if (callee == mOutput) {
 		   Expr * decl = callexpr->getArg(0);
 		   val = mStack.back().getStmtVal(decl);
 		   llvm::errs() << val;
+			return 0;
 	   } else {
+			FunctionDecl* funcdecl = callexpr->getDirectCallee();
+			std::vector<int> args(callexpr->getNumArgs(), 0);
+			for(int i = 0; i < callexpr->getNumArgs(); i++) {
+				Expr * decl = callexpr->getArg(i);
+				args[i] = mStack.back().getStmtVal(decl);
+			}
+			mStack.push_back(StackFrame()); // new frame
+			for(int i = 0; i < funcdecl->getNumParams(); i++) {
+				mStack.back().bindDeclInt(funcdecl->getParamDecl(i), args[i]);
+			}
 		   /// You could add your code here for Function call Return
+			return funcdecl;
 	   }
    }
+
+	void funcRet(CallExpr* call) {
+		Vtype val = mStack.back().getStmtVtype(mStack.back().getret());
+		mStack.pop_back();
+		mStack.back().bindStmtVtype(call, val);
+	}
+
+	void returnStmt(ReturnStmt* stmt) {
+		Vtype val = mStack.back().getStmtVtype(stmt->getRetValue());
+		mStack.back().bindStmtVtype(stmt, val);
+		mStack.back().setret(stmt);
+	}
 
 	Stmt* ifStmt(IfStmt * ifstmt){
 		Expr *cond = ifstmt->getCond();

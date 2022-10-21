@@ -36,7 +36,11 @@ public:
    }
    virtual void VisitCallExpr(CallExpr * call) {
 	   VisitStmt(call);
-	   mEnv->call(call);
+	   FunctionDecl* callee = mEnv->call(call);
+      if(callee) {
+         VisitStmt(callee->getBody());
+         mEnv->funcRet(call);
+      }
    }
    virtual void VisitDeclStmt(DeclStmt * declstmt) {
 	   mEnv->decl(declstmt);
@@ -76,6 +80,10 @@ public:
    virtual void VisitArraySubscriptExpr(ArraySubscriptExpr* expr){
       VisitStmt(expr);
       mEnv->arrayExpr(expr);
+   }
+   virtual void VisitReturnStmt(ReturnStmt* stmt) {
+      VisitStmt(stmt);
+      mEnv->returnStmt(stmt);
    }
 
 private:
