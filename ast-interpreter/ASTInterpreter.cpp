@@ -67,13 +67,13 @@ public:
       }
    }
    virtual void VisitForStmt(ForStmt* forStmt) {
-      this->Visit(forStmt->getInit());
+      if(forStmt->getInit()) this->Visit(forStmt->getInit());
       int isFinish = 0;
       while(!isFinish) {
          this->Visit(forStmt->getCond());
          isFinish = mEnv->getTopStmtVal(forStmt->getCond()) == 0;
          if(isFinish) break;
-         this->Visit(forStmt->getBody());
+         if(forStmt->getBody()) this->Visit(forStmt->getBody());
          this->Visit(forStmt->getInc());
       }
    }
