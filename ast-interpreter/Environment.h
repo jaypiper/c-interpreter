@@ -244,7 +244,7 @@ public:
 		} else {
 			Vtype dummyVtype;
 			mStack.back().bindStmtVtype(declref, dummyVtype);
-			std::cout << "Invalid Type\n";
+			// std::cout << "Invalid Type\n";
 		}
    }
 
