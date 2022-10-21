@@ -38,7 +38,7 @@ public:
 	   VisitStmt(call);
 	   FunctionDecl* callee = mEnv->call(call);
       if(callee) {
-         VisitStmt(callee->getBody());
+         if(callee->hasBody()) VisitStmt(callee->getBody());
          mEnv->funcRet(call);
       }
    }
