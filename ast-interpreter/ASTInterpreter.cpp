@@ -45,7 +45,7 @@ public:
       mEnv->intLiteral(intLiteral);
    }
    virtual void VisitVarDecl(VarDecl* varDecl) {
-      mEnv->varDecl(varDecl);
+      mEnv->innerVarDecl(varDecl);
    }
    virtual void VisitIfStmt(IfStmt * ifStmt) {
       Stmt* stmt = *(ifStmt->children().begin());

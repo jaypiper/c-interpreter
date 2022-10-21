@@ -59,9 +59,8 @@ public:
 		assert (mVars.find(decl) != mVars.end());
 		return mVars[decl];
 	}
-	Vtype getDeclVtypeInvalid(Decl* decl) {
-		if(mVars.find(decl) != mVars.end()) return {.type=TINVALID, .val=-1};
-		else return mVars[decl];
+	int checkDeclValid(Decl* decl) {
+		return mVars.find(decl) != mVars.end();
 	}
 	int getArrayDeclVal(Decl* decl, int idx) {
 		return arrayVals[mVars[decl].idx + idx];
@@ -94,18 +93,59 @@ public:
 };
 
 /// Heap maps address to a value
-/*
+
+typedef struct Htype{
+	int idx;
+	int length;
+}Htype;
+
 class Heap {
+	std::vector<int> space;
+	std::map<Decl*, Htype> hVars;
 public:
-   int Malloc(int size) ;
-   void Free (int addr) ;
-   void Update(int addr, int val) ;
-   int get(int addr);
+	Heap() {
+   }
+	void bindVar(Decl* decl, Htype type) {
+		hVars[decl] = type;
+	}
+	void bindInt(Decl* decl, int val) {
+		int idx = this->Malloc(1);
+		space[idx] = val;
+		this->bindVar(decl, {.idx = idx, .length=1});
+	}
+	int checkValid(Decl* decl){
+		return hVars.find(decl) != hVars.end();
+	}
+	Htype getVar(Decl* decl) {
+		assert(hVars.find(decl) != hVars.end());
+		return hVars[decl];
+	}
+	int getVarInt(Decl* decl) {
+		assert(hVars.find(decl) != hVars.end());
+		return space[hVars[decl].idx];
+	}
+   int Malloc(int size) {
+		int ret = space.size();
+		for(int i = 0; i < size; i++) space.push_back(0);
+		return ret;
+	}
+   void Free (int addr) {
+		// do nothing
+	}
+   void Update(int addr, int val) {
+		assert(addr < space.size());
+		space[addr] = val;
+	}
+   int get(int addr) {
+		assert(addr < space.size());
+		return space[addr];
+	}
 };
-*/
+
 
 class Environment {
    std::vector<StackFrame> mStack;
+	Heap heap;
 
    FunctionDecl * mFree;				/// Declartions to the built-in functions
    FunctionDecl * mMalloc;
@@ -118,7 +158,12 @@ public:
    Environment() : mStack(), mFree(NULL), mMalloc(NULL), mInput(NULL), mOutput(NULL), mEntry(NULL) {
    }
 
-
+	int getDeclVal(Decl* decl) {
+		if(mStack.back().checkDeclValid(decl)) {
+			return mStack.back().getDeclVal(decl);
+		}
+		return heap.getVarInt(decl);
+	}
    /// Initialize the Environment
    void init(TranslationUnitDecl * unit) {
 	   for (TranslationUnitDecl::decl_iterator i =unit->decls_begin(), e = unit->decls_end(); i != e; ++ i) {
@@ -128,7 +173,9 @@ public:
 			   else if (fdecl->getName().equals("GET")) mInput = fdecl;
 			   else if (fdecl->getName().equals("PRINT")) mOutput = fdecl;
 			   else if (fdecl->getName().equals("main")) mEntry = fdecl;
-		   }
+		   } else if (VarDecl* vardecl = dyn_cast<VarDecl>(*i)) {
+				outerVarDecl(vardecl);
+			}
 	   }
 	   mStack.push_back(StackFrame());
    }
@@ -203,12 +250,12 @@ public:
 			   it != ie; ++ it) {
 		   Decl * decl = *it;
 		   if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
-				varDecl(vardecl);
+				innerVarDecl(vardecl);
 		   }
 	   }
    }
 
-	void varDecl(VarDecl* dec){
+	void innerVarDecl(VarDecl* dec){
 		if (dec->hasInit()){
 			APValue* value = dec->evaluateValue();
 			assert(value->isInt());
@@ -230,11 +277,28 @@ public:
 		return;
 	}
 
+	void outerVarDecl(VarDecl* dec) {
+		if (dec->hasInit()) {
+			APValue* value = dec->evaluateValue();
+			assert(value->isInt());
+			heap.bindInt(dec, value->getInt().getExtValue());
+		} else {
+			const Type* dectype = dec->getType().getTypePtr();
+			if (dectype->isConstantArrayType()) {
+				assert(0);
+			} else if (dectype->isArrayType()){
+				assert(0);
+			} else{
+				heap.bindInt(dec, 0);
+			}
+		}
+	}
+
    void declref(DeclRefExpr * declref) {
 	   mStack.back().setPC(declref);
 	   if (declref->getType()->isIntegerType()) {
 		   Decl* decl = declref->getFoundDecl();
-		   int val = mStack.back().getDeclVal(decl);
+		   int val = this->getDeclVal(decl);
 		   mStack.back().bindStmtInt(declref, val);
 	   } else if(declref->getType()->isArrayType()) {
 			Decl* decl = declref->getFoundDecl();
