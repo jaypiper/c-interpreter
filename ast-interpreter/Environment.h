@@ -28,12 +28,14 @@ class StackFrame {
    /// Which are either integer or addresses (also represented using an Integer value)
    std::map<Decl*, Vtype> mVars;
    std::map<Stmt*, Vtype> mExprs;
-	std::vector<int> arrayVals;
+	int arrayVals[4096];
+	int arridx = 0;
    /// The current stmt
    Stmt * mPC;
 	Stmt * ret;
 public:
    StackFrame() : mVars(), mExprs(), mPC() {
+		memset(arrayVals, 0, sizeof(arrayVals));
    }
 
    void bindDeclInt(Decl* decl, int val) {
@@ -41,11 +43,11 @@ public:
 		mVars[decl].val  = val;
    }
 	void bindArrayDecl(Decl* decl, int num) {
-		int idx = arrayVals.size();
+		int idx = arridx;
 		mVars[decl].type = TARRAY;
 		mVars[decl].idx = idx;
 		for(int i = 0; i < num; i++) {
-			arrayVals.push_back(0);
+			arrayVals[arridx++];
 		}
 	}
 	void bindDeclVtype(Decl* decl, Vtype type) {
@@ -107,10 +109,13 @@ typedef struct Htype{
 }Htype;
 
 class Heap {
-	std::vector<int> space;
+	int space[4096];
+	int spaceidx = 0;
 	std::map<Decl*, Htype> hVars;
 public:
 	Heap() {
+		memset(space, 0, sizeof(space));
+		spaceidx = 0;
    }
 	void bindVar(Decl* decl, Htype type) {
 		hVars[decl] = type;
@@ -132,19 +137,19 @@ public:
 		return space[hVars[decl].idx];
 	}
    int Malloc(int size) {
-		int ret = space.size();
-		for(int i = 0; i < size; i++) space.push_back(0);
+		int ret = spaceidx;
+		for(int i = 0; i < size; i++) space[spaceidx++] = 0;
 		return ret;
 	}
    void Free (int addr) {
 		// do nothing
 	}
    void Update(int addr, int val) {
-		assert(addr < space.size());
+		assert(addr < spaceidx);
 		space[addr] = val;
 	}
    int get(int addr) {
-		assert(addr < space.size());
+		assert(addr < spaceidx);
 		return space[addr];
 	}
 };
