@@ -73,6 +73,10 @@ public:
          this->Visit(forStmt->getInc());
       }
    }
+   virtual void VisitArraySubscriptExpr(ArraySubscriptExpr* expr){
+      VisitStmt(expr);
+      mEnv->arrayExpr(expr);
+   }
 
 private:
    Environment * mEnv;

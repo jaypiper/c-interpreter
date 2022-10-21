@@ -2,6 +2,7 @@
 //===----------------------------------------------------------------------===//
 #include <stdio.h>
 #include <iostream>
+#include <vector>
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -12,31 +13,78 @@
 
 using namespace clang;
 
+enum {TINVALID, TINT, TARRAY, TREF};
+typedef struct VType{
+	int type;
+	union {
+		int val;
+		int idx;
+		int* ref;
+	};
+}Vtype;
+
 class StackFrame {
    /// StackFrame maps Variable Declaration to Value
    /// Which are either integer or addresses (also represented using an Integer value)
-   std::map<Decl*, int> mVars;
-   std::map<Stmt*, int> mExprs;
+   std::map<Decl*, Vtype> mVars;
+   std::map<Stmt*, Vtype> mExprs;
+	std::vector<int> arrayVals;
    /// The current stmt
    Stmt * mPC;
 public:
    StackFrame() : mVars(), mExprs(), mPC() {
    }
 
-   void bindDecl(Decl* decl, int val) {
-      mVars[decl] = val;
-   }    
-   int getDeclVal(Decl * decl) {
-      assert (mVars.find(decl) != mVars.end());
-      return mVars.find(decl)->second;
+   void bindDeclInt(Decl* decl, int val) {
+      mVars[decl].type = TINT;
+		mVars[decl].val  = val;
    }
-   void bindStmt(Stmt * stmt, int val) {
-	   mExprs[stmt] = val;
+	void bindArrayDecl(Decl* decl, int num) {
+		int idx = arrayVals.size();
+		mVars[decl].type = TARRAY;
+		mVars[decl].idx = idx;
+		for(int i = 0; i < num; i++) {
+			arrayVals.push_back(0);
+		}
+	}
+	void bindDeclVtype(Decl* decl, Vtype type) {
+		mVars[decl] = type;
+	}
+	int getDeclVal(Decl* decl) {
+		assert (mVars.find(decl) != mVars.end());
+		if(mVars[decl].type == TREF) return *(mVars[decl].ref);
+		return mVars[decl].val;
+	}
+	Vtype getDeclVtype(Decl* decl){
+		assert (mVars.find(decl) != mVars.end());
+		return mVars[decl];
+	}
+	Vtype getDeclVtypeInvalid(Decl* decl) {
+		if(mVars.find(decl) != mVars.end()) return {.type=TINVALID, .val=-1};
+		else return mVars[decl];
+	}
+	int getArrayDeclVal(Decl* decl, int idx) {
+		return arrayVals[mVars[decl].idx + idx];
+	}
+   void bindStmtInt(Stmt * stmt, int val) {
+	   mExprs[stmt].type = TINT;
+		mExprs[stmt].val = val;
    }
+	void bindStmtVtype(Stmt* stmt, Vtype vtype) {
+		mExprs[stmt] = vtype;
+	}
    int getStmtVal(Stmt * stmt) {
+	   assert (mExprs.find(stmt) != mExprs.end());
+		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref);
+	   return mExprs[stmt].val;
+   }
+	Vtype getStmtVtype(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
 	   return mExprs[stmt];
    }
+	int* getref(int idx){
+		return &arrayVals[idx];
+	}
    void setPC(Stmt * stmt) {
 	   mPC = stmt;
    }
@@ -93,16 +141,22 @@ public:
    void binop(BinaryOperator *bop) {
 	   Expr * left = bop->getLHS();
 	   Expr * right = bop->getRHS();
-
+		int bop_val = 0;
 	   if (bop->isAssignmentOp()) {
-		   int val = mStack.back().getStmtVal(right);
-		   mStack.back().bindStmt(left, val);
+			int val = mStack.back().getStmtVal(right);
+			bop_val = val;
 		   if (DeclRefExpr * declexpr = dyn_cast<DeclRefExpr>(left)) {
+		   	mStack.back().bindStmtInt(left, val);
 			   Decl * decl = declexpr->getFoundDecl();
 				if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
-					mStack.back().bindDecl(vardecl, val);
+					mStack.back().bindDeclInt(vardecl, val);
 		   	}
-		   }
+		   } else if(ArraySubscriptExpr * arrayexpr = dyn_cast<ArraySubscriptExpr>(left)) {
+				Vtype type = mStack.back().getStmtVtype(left);
+				*(type.ref) = val;
+			} else {
+				assert(0);
+			}
 	   } else {
 			int val_r = mStack.back().getStmtVal(right);
 			int val_l = mStack.back().getStmtVal(left);
@@ -128,19 +182,20 @@ public:
 					std::cout << "op = " << bop->getOpcode() << std::endl;
 					assert(0 && "implement me!");
 			}
-			mStack.back().bindStmt(bop, newval);
+			bop_val = newval;
 		}
+		mStack.back().bindStmtInt(bop, bop_val);
    }
 
 	void unaryop(UnaryOperator* uop) {
 		int val = mStack.back().getStmtVal(uop->getSubExpr());
 		if(uop->getOpcode() == UO_Minus) {
-			mStack.back().bindStmt(uop, -val);
+			mStack.back().bindStmtInt(uop, -val);
 		}
 	}
 
 	void intLiteral(IntegerLiteral * intLiteral){
-		mStack.back().bindStmt(intLiteral, intLiteral->getValue().getSExtValue());
+		mStack.back().bindStmtInt(intLiteral, intLiteral->getValue().getSExtValue());
 	}
 
    void decl(DeclStmt * declstmt) {
@@ -157,9 +212,20 @@ public:
 		if (dec->hasInit()){
 			APValue* value = dec->evaluateValue();
 			assert(value->isInt());
-			mStack.back().bindDecl(dec, value->getInt().getExtValue());
+			mStack.back().bindDeclInt(dec, value->getInt().getExtValue());
 		} else {
-			mStack.back().bindDecl(dec, 0);
+			const Type* dectype = dec->getType().getTypePtr();
+			if (dectype->isConstantArrayType()) {
+				const ConstantArrayType* arrtype = dyn_cast<ConstantArrayType>(dectype);
+				int entry_num = arrtype->getSize().getZExtValue();
+
+				mStack.back().bindArrayDecl(dec, entry_num); //array num
+			} else if (dectype->isArrayType()){
+				assert(0);
+			} else{
+				mStack.back().bindDeclInt(dec, 0);
+
+			}
 		}
 		return;
 	}
@@ -168,19 +234,37 @@ public:
 	   mStack.back().setPC(declref);
 	   if (declref->getType()->isIntegerType()) {
 		   Decl* decl = declref->getFoundDecl();
-
 		   int val = mStack.back().getDeclVal(decl);
-		   mStack.back().bindStmt(declref, val);
-	   }
+		   mStack.back().bindStmtInt(declref, val);
+	   } else if(declref->getType()->isArrayType()) {
+			Decl* decl = declref->getFoundDecl();
+			Vtype vtype = mStack.back().getDeclVtype(decl);
+			mStack.back().bindStmtVtype(declref, vtype);
+			
+		} else {
+			Vtype dummyVtype;
+			mStack.back().bindStmtVtype(declref, dummyVtype);
+			std::cout << "Invalid Type\n";
+		}
    }
 
    void cast(CastExpr * castexpr) {
 	   mStack.back().setPC(castexpr);
+		QualType castQType = castexpr->getType();
+		const Type* casttype = castQType.getTypePtr();
+		Vtype val = mStack.back().getStmtVtype(castexpr->getSubExpr());
+		mStack.back().bindStmtVtype(castexpr, val);
+		return;
 	   if (castexpr->getType()->isIntegerType()) {
 		   Expr * expr = castexpr->getSubExpr();
 		   int val = mStack.back().getStmtVal(expr);
-		   mStack.back().bindStmt(castexpr, val );
-	   }
+		   mStack.back().bindStmtInt(castexpr, val);
+	   } else if (casttype->isPointerType()) {
+			Vtype val = mStack.back().getStmtVtype(castexpr->getSubExpr());
+			mStack.back().bindStmtVtype(castexpr, val);
+		} else{
+			std::cout << "Invalid cast type " << castexpr->getType().getAsString() << std::endl;
+		}
    }
 
    /// !TODO Support Function Call
@@ -192,7 +276,7 @@ public:
 		  llvm::errs() << "Please Input an Integer Value : ";
 		  scanf("%d", &val);
 
-		  mStack.back().bindStmt(callexpr, val);
+		  mStack.back().bindStmtInt(callexpr, val);
 	   } else if (callee == mOutput) {
 		   Expr * decl = callexpr->getArg(0);
 		   val = mStack.back().getStmtVal(decl);
@@ -211,6 +295,13 @@ public:
 		} else {
 			return ifstmt->getElse();
 		}
+	}
+
+	void arrayExpr(ArraySubscriptExpr* expr) {
+		Vtype vidx = mStack.back().getStmtVtype(expr->getIdx());
+		VType	vbase = mStack.back().getStmtVtype(expr->getBase());
+		Vtype vtype = {.type = TREF, .ref = mStack.back().getref(vbase.idx + vidx.val)};
+		mStack.back().bindStmtVtype(expr, vtype);
 	}
 
 	int getTopStmtVal(Stmt* stmt){
