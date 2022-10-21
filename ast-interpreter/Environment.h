@@ -158,7 +158,7 @@ public:
 class Environment {
    std::vector<StackFrame> mStack;
 	Heap heap;
-
+	int isfuncRet;
    FunctionDecl * mFree;				/// Declartions to the built-in functions
    FunctionDecl * mMalloc;
    FunctionDecl * mInput;
@@ -167,7 +167,7 @@ class Environment {
    FunctionDecl * mEntry;
 public:
    /// Get the declartions to the built-in functions
-   Environment() : mStack(), mFree(NULL), mMalloc(NULL), mInput(NULL), mOutput(NULL), mEntry(NULL) {
+   Environment() : mStack(), mFree(NULL), mMalloc(NULL), mInput(NULL), mOutput(NULL), mEntry(NULL), isfuncRet(0){
    }
 
 	int getDeclVal(Decl* decl) {
@@ -198,6 +198,7 @@ public:
 
    /// !TODO Support comparison operation
    void binop(BinaryOperator *bop) {
+		if(isfuncRet) return;
 	   Expr * left = bop->getLHS();
 	   Expr * right = bop->getRHS();
 		int bop_val = 0;
@@ -247,6 +248,7 @@ public:
    }
 
 	void unaryop(UnaryOperator* uop) {
+		if(isfuncRet) return;
 		int val = mStack.back().getStmtVal(uop->getSubExpr());
 		if(uop->getOpcode() == UO_Minus) {
 			mStack.back().bindStmtInt(uop, -val);
@@ -258,6 +260,7 @@ public:
 	}
 
    void decl(DeclStmt * declstmt) {
+		if(isfuncRet) return;
 	   for (DeclStmt::decl_iterator it = declstmt->decl_begin(), ie = declstmt->decl_end();
 			   it != ie; ++ it) {
 		   Decl * decl = *it;
@@ -268,6 +271,7 @@ public:
    }
 
 	void innerVarDecl(VarDecl* dec){
+		if(isfuncRet) return;
 		if (dec->hasInit()){
 			APValue* value = dec->evaluateValue();
 			assert(value->isInt());
@@ -307,6 +311,7 @@ public:
 	}
 
    void declref(DeclRefExpr * declref) {
+		if(isfuncRet) return;
 	   mStack.back().setPC(declref);
 	   if (declref->getType()->isIntegerType()) {
 		   Decl* decl = declref->getFoundDecl();
@@ -325,6 +330,7 @@ public:
    }
 
    void cast(CastExpr * castexpr) {
+		if(isfuncRet) return;
 	   mStack.back().setPC(castexpr);
 		QualType castQType = castexpr->getType();
 		const Type* casttype = castQType.getTypePtr();
@@ -345,6 +351,7 @@ public:
 
    /// !TODO Support Function Call
    FunctionDecl* call(CallExpr * callexpr) {
+		if(isfuncRet) return 0;
 	   mStack.back().setPC(callexpr);
 	   int val = 0;
 	   FunctionDecl * callee = callexpr->getDirectCallee();
@@ -378,15 +385,19 @@ public:
 		Vtype val = mStack.back().getStmtVtype(mStack.back().getret());
 		mStack.pop_back();
 		mStack.back().bindStmtVtype(call, val);
+		isfuncRet = 0;
 	}
 
 	void returnStmt(ReturnStmt* stmt) {
+		if(isfuncRet) return;
 		Vtype val = mStack.back().getStmtVtype(stmt->getRetValue());
 		mStack.back().bindStmtVtype(stmt, val);
 		mStack.back().setret(stmt);
+		isfuncRet = 1;
 	}
 
 	Stmt* ifStmt(IfStmt * ifstmt){
+		if(isfuncRet) return 0;
 		Expr *cond = ifstmt->getCond();
 		int val = mStack.back().getStmtVal(cond);
 		if(val) {
@@ -398,6 +409,7 @@ public:
 	}
 
 	void arrayExpr(ArraySubscriptExpr* expr) {
+		if(isfuncRet) return;
 		Vtype vidx = mStack.back().getStmtVtype(expr->getIdx());
 		VType	vbase = mStack.back().getStmtVtype(expr->getBase());
 		Vtype vtype = {.type = TREF, .ref = mStack.back().getref(vbase.idx + vidx.val)};
