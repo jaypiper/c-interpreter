@@ -419,6 +419,10 @@ public:
 	int getTopStmtVal(Stmt* stmt){
 		return mStack.back().getStmtVal(stmt);
 	}
+
+	int checkFinish() {
+		return isfuncRet;
+	}
 };
 
 

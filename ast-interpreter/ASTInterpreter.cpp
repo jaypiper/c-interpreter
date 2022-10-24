@@ -59,7 +59,7 @@ public:
          this->Visit(nextStmt);
    }
    virtual void VisitWhileStmt(WhileStmt* whileStmt){
-      int isFinish = 0;
+      int isFinish = mEnv->checkFinish();
       while(!isFinish){
          this->Visit(whileStmt->getCond());
          isFinish = mEnv->getTopStmtVal(whileStmt->getCond()) == 0;
@@ -68,7 +68,7 @@ public:
    }
    virtual void VisitForStmt(ForStmt* forStmt) {
       if(forStmt->getInit()) this->Visit(forStmt->getInit());
-      int isFinish = 0;
+      int isFinish = mEnv->checkFinish();
       while(!isFinish) {
          this->Visit(forStmt->getCond());
          isFinish = mEnv->getTopStmtVal(forStmt->getCond()) == 0;
