@@ -48,6 +48,9 @@ public:
    virtual void VisitIntegerLiteral(IntegerLiteral * intLiteral) {
       mEnv->intLiteral(intLiteral);
    }
+   virtual void VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr* expr) {
+      mEnv->unaryTraitExpr(expr);
+   }
    virtual void VisitVarDecl(VarDecl* varDecl) {
       mEnv->innerVarDecl(varDecl);
    }

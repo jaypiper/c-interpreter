@@ -276,6 +276,13 @@ public:
 		mStack.back().bindStmtInt(intLiteral, intLiteral->getValue().getSExtValue());
 	}
 
+	void unaryTraitExpr(UnaryExprOrTypeTraitExpr* expr) {
+		assert(expr->getKind() == UETT_SizeOf);
+		if (expr->getType()->isIntegerType()) {
+			mStack.back().bindStmtInt(expr, 4);
+		}
+	}
+
    void decl(DeclStmt * declstmt) {
 		if(isfuncRet) return;
 	   for (DeclStmt::decl_iterator it = declstmt->decl_begin(), ie = declstmt->decl_end();
