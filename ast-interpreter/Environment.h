@@ -399,9 +399,11 @@ public:
    }
 
 	void funcRet(CallExpr* call) {
-		Vtype val = mStack.back().getStmtVtype(mStack.back().getret());
+		Stmt* ret = mStack.back().getret();
+		Vtype val;
+		if(ret) val = mStack.back().getStmtVtype(mStack.back().getret());
 		mStack.pop_back();
-		mStack.back().bindStmtVtype(call, val);
+		if (ret) mStack.back().bindStmtVtype(call, val);
 		isfuncRet = 0;
 	}
 
