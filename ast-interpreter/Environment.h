@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <string>
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -36,6 +37,7 @@ class StackFrame {
 public:
    StackFrame() : mVars(), mExprs(), mPC() {
 		memset(arrayVals, 0, sizeof(arrayVals));
+		ret = NULL;
    }
 
    void bindDeclInt(Decl* decl, int val) {
@@ -165,6 +167,7 @@ class Environment {
    FunctionDecl * mOutput;
 
    FunctionDecl * mEntry;
+	std::map<std::string, FunctionDecl*> funcDef;
 public:
    /// Get the declartions to the built-in functions
    Environment() : mStack(), mFree(NULL), mMalloc(NULL), mInput(NULL), mOutput(NULL), mEntry(NULL), isfuncRet(0){
@@ -176,6 +179,14 @@ public:
 		}
 		return heap.getVarInt(decl);
 	}
+
+	void addFunc(std::string str, FunctionDecl* func) {
+		funcDef[str] = func;
+	}
+	FunctionDecl* getFunc(std::string str) {
+		assert(funcDef.find(str) != funcDef.end());
+		return funcDef[str];
+	}
    /// Initialize the Environment
    void init(TranslationUnitDecl * unit) {
 	   for (TranslationUnitDecl::decl_iterator i =unit->decls_begin(), e = unit->decls_end(); i != e; ++ i) {
@@ -185,6 +196,11 @@ public:
 			   else if (fdecl->getName().equals("GET")) mInput = fdecl;
 			   else if (fdecl->getName().equals("PRINT")) mOutput = fdecl;
 			   else if (fdecl->getName().equals("main")) mEntry = fdecl;
+				else {
+					if(fdecl->hasBody()) {
+						addFunc(fdecl->getNameAsString(), fdecl);
+					}
+				}
 		   } else if (VarDecl* vardecl = dyn_cast<VarDecl>(*i)) {
 				outerVarDecl(vardecl);
 			}
@@ -366,7 +382,8 @@ public:
 		   llvm::errs() << val;
 			return 0;
 	   } else {
-			FunctionDecl* funcdecl = callexpr->getDirectCallee();
+			std::string calleeName = callexpr->getDirectCallee()->getNameAsString();
+			FunctionDecl* funcdecl = getFunc(calleeName);
 			std::vector<int> args(callexpr->getNumArgs(), 0);
 			for(int i = 0; i < callexpr->getNumArgs(); i++) {
 				Expr * decl = callexpr->getArg(i);
