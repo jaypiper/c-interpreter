@@ -13,6 +13,7 @@
 #include "clang/Tooling/Tooling.h"
 
 using namespace clang;
+#define LOCAL
 
 enum {TINVALID, TINT, TARRAY, TREF};
 typedef struct VType{
@@ -380,6 +381,9 @@ public:
 		   Expr * decl = callexpr->getArg(0);
 		   val = mStack.back().getStmtVal(decl);
 		   llvm::errs() << val;
+			#ifdef LOCAL
+			llvm::errs() << "\n";
+			#endif
 			return 0;
 	   } else {
 			std::string calleeName = callexpr->getDirectCallee()->getNameAsString();
