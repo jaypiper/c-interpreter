@@ -45,6 +45,7 @@ public:
    void bindDeclInt(Decl* decl, uintptr_t val) {
       mVars[decl].type = TINT;
 		mVars[decl].val  = val;
+		mVars[decl].ptr_sz  = 1;
    }
 	void bindArrayDecl(Decl* decl, int num) {
 		int idx = arridx;
@@ -248,10 +249,10 @@ public:
 		if(isfuncRet) return;
 	   Expr * left = bop->getLHS();
 	   Expr * right = bop->getRHS();
-		uintptr_t bop_val = 0;
+		Vtype bop_type = {.val = 0};
 	   if (bop->isAssignmentOp()) {
 			Vtype val = mStack.back().getStmtVtype(right);
-			bop_val = val.val;
+			bop_type.val = val.val;
 		   if (DeclRefExpr * declexpr = dyn_cast<DeclRefExpr>(left)) {
 				mStack.back().bindStmtVtype(left, val);
 			   Decl * decl = declexpr->getFoundDecl();
@@ -273,13 +274,15 @@ public:
 				assert(0);
 			}
 	   } else {
-			int val_r = mStack.back().getStmtVal(right);
-			int val_l = mStack.back().getStmtVal(left);
-			int newval = 0;
+			Vtype type_l = mStack.back().getStmtVtype(left);
+			bop_type = type_l;
+			uintptr_t val_r = mStack.back().getStmtVal(right);
+			uintptr_t val_l = mStack.back().getStmtVal(left);
+			uintptr_t newval = 0;
 			switch(bop->getOpcode()){
 				case BO_Mul:	newval = val_r * val_l; break;
-				case BO_Add:   newval = val_l + val_r; break;
-				case BO_Sub:   newval = val_l - val_r; break;
+				case BO_Add:   val_r *= type_l.ptr_sz; newval = val_l + val_r; break;
+				case BO_Sub:   val_r *= type_l.ptr_sz; newval = val_l - val_r; break;
 				case BO_Shl:   newval = val_l << val_r; break;
 				case BO_Shr:   newval = val_l >> val_r; break;
 				case BO_EQ:  	newval = val_r == val_l; break;
@@ -297,9 +300,9 @@ public:
 					std::cout << "op = " << bop->getOpcode() << std::endl;
 					assert(0 && "implement me!");
 			}
-			bop_val = newval;
+			bop_type.val = newval;
 		}
-		mStack.back().bindStmtInt(bop, bop_val);
+		mStack.back().bindStmtVtype(bop, bop_type);
    }
 
 	void unaryop(UnaryOperator* uop) {
