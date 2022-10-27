@@ -519,6 +519,11 @@ public:
 		mStack.back().bindStmtVtype(expr, vtype);
 	}
 
+	void parenExpr(ParenExpr* expr) {
+		Vtype val = mStack.back().getStmtVtype(expr->getSubExpr());
+		mStack.back().bindStmtVtype(expr, val);
+	}
+
 	int getTopStmtVal(Stmt* stmt){
 		return mStack.back().getStmtVal(stmt);
 	}

@@ -88,6 +88,10 @@ public:
       VisitStmt(stmt);
       mEnv->returnStmt(stmt);
    }
+   virtual void VisitParenExpr(ParenExpr* expr) {
+      VisitStmt(expr);
+      mEnv->parenExpr(expr);
+   }
 
 private:
    Environment * mEnv;
