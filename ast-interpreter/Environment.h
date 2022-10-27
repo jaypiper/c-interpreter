@@ -298,8 +298,12 @@ public:
 
 	void unaryTraitExpr(UnaryExprOrTypeTraitExpr* expr) {
 		assert(expr->getKind() == UETT_SizeOf);
-		if (expr->getType()->isIntegerType()) {
+		if (expr->getArgumentType()->isIntegerType()) {
 			mStack.back().bindStmtInt(expr, 4);
+		} else if (expr->getArgumentType()->isPointerType()) {
+			mStack.back().bindStmtInt(expr, 8);
+		} else {
+			assert(0);
 		}
 	}
 
