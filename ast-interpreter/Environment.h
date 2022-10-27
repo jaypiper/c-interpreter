@@ -388,6 +388,7 @@ public:
 		Vtype val = mStack.back().getStmtVtype(castexpr->getSubExpr());
 		mStack.back().bindStmtVtype(castexpr, val);
 		return;
+#if 0
 	   if (castexpr->getType()->isIntegerType()) {
 		   Expr * expr = castexpr->getSubExpr();
 		   int val = mStack.back().getStmtVal(expr);
@@ -398,6 +399,7 @@ public:
 		} else{
 			std::cout << "Invalid cast type " << castexpr->getType().getAsString() << std::endl;
 		}
+#endif
    }
 
    /// !TODO Support Function Call
