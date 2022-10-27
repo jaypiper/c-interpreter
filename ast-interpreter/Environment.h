@@ -229,17 +229,25 @@ public:
 	   Expr * right = bop->getRHS();
 		int bop_val = 0;
 	   if (bop->isAssignmentOp()) {
-			int val = mStack.back().getStmtVal(right);
-			bop_val = val;
+			Vtype val = mStack.back().getStmtVtype(right);
+			bop_val = val.val;
 		   if (DeclRefExpr * declexpr = dyn_cast<DeclRefExpr>(left)) {
-		   	mStack.back().bindStmtInt(left, val);
+				mStack.back().bindStmtVtype(left, val);
 			   Decl * decl = declexpr->getFoundDecl();
 				if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
-					mStack.back().bindDeclInt(vardecl, val);
+					mStack.back().bindDeclVtype(vardecl, val);
 		   	}
 		   } else if(ArraySubscriptExpr * arrayexpr = dyn_cast<ArraySubscriptExpr>(left)) {
 				Vtype type = mStack.back().getStmtVtype(left);
-				*(type.ref) = val;
+				*(type.ref) = val.val;
+			} else if(UnaryOperator* unaryexpr = dyn_cast<UnaryOperator>(left)) {
+				Vtype type = mStack.back().getStmtVtype(left);
+				if(type.type == TREF) {
+					mStack.back().bindStmtInt(left, val.val);
+					*(type.ref) = val.val;
+				} else {
+					assert(0);
+				}
 			} else {
 				assert(0);
 			}
@@ -275,9 +283,12 @@ public:
 
 	void unaryop(UnaryOperator* uop) {
 		if(isfuncRet) return;
-		int val = mStack.back().getStmtVal(uop->getSubExpr());
+		Vtype val = mStack.back().getStmtVtype(uop->getSubExpr());
 		if(uop->getOpcode() == UO_Minus) {
-			mStack.back().bindStmtInt(uop, -val);
+			val.val = -val.val;
+			mStack.back().bindStmtVtype(uop, val);
+		} else if(uop->getOpcode() == UO_Deref) {
+			mStack.back().bindStmtVtype(uop, val);
 		}
 	}
 
@@ -354,7 +365,10 @@ public:
 			Decl* decl = declref->getFoundDecl();
 			Vtype vtype = mStack.back().getDeclVtype(decl);
 			mStack.back().bindStmtVtype(declref, vtype);
-			
+		} else if (declref->getType()->isPointerType()) {
+			Decl* decl = declref->getFoundDecl();
+			Vtype vtype = mStack.back().getDeclVtype(decl);
+			mStack.back().bindStmtVtype(declref, vtype);
 		} else {
 			Vtype dummyVtype;
 			mStack.back().bindStmtVtype(declref, dummyVtype);
