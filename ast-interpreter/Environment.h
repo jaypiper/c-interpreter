@@ -19,7 +19,7 @@ enum {TINVALID, TINT, TARRAY, TREF};
 typedef struct VType{
 	int type;
 	union {
-		int val;
+		int64_t val;
 		int idx;
 		int* ref;
 	};
@@ -41,7 +41,7 @@ public:
 		ret = NULL;
    }
 
-   void bindDeclInt(Decl* decl, int val) {
+   void bindDeclInt(Decl* decl, uintptr_t val) {
       mVars[decl].type = TINT;
 		mVars[decl].val  = val;
    }
@@ -56,7 +56,7 @@ public:
 	void bindDeclVtype(Decl* decl, Vtype type) {
 		mVars[decl] = type;
 	}
-	int getDeclVal(Decl* decl) {
+	uintptr_t getDeclVal(Decl* decl) {
 		assert (mVars.find(decl) != mVars.end());
 		if(mVars[decl].type == TREF) return *(mVars[decl].ref);
 		return mVars[decl].val;
@@ -71,7 +71,7 @@ public:
 	int getArrayDeclVal(Decl* decl, int idx) {
 		return arrayVals[mVars[decl].idx + idx];
 	}
-   void bindStmtInt(Stmt * stmt, int val) {
+   void bindStmtInt(Stmt * stmt, uintptr_t val) {
 	   mExprs[stmt].type = TINT;
 		mExprs[stmt].val = val;
    }
@@ -82,7 +82,7 @@ public:
 		mExprs[stmt].type = TREF;
 		mExprs[stmt].ref = (int*)addr;
 	}
-   int getStmtVal(Stmt * stmt) {
+   uintptr_t getStmtVal(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
 		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref);
 	   return mExprs[stmt].val;
