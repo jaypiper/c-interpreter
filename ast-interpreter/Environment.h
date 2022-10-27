@@ -78,11 +78,20 @@ public:
 	void bindStmtVtype(Stmt* stmt, Vtype vtype) {
 		mExprs[stmt] = vtype;
 	}
+	void bindStmtRef(Stmt* stmt, void* addr) {
+		mExprs[stmt].type = TREF;
+		mExprs[stmt].ref = (int*)addr;
+	}
    int getStmtVal(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
 		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref);
 	   return mExprs[stmt].val;
    }
+	void* getStmtAddr(Stmt* stmt) {
+		assert (mExprs.find(stmt) != mExprs.end());
+		assert (mExprs[stmt].type == TREF);
+		return mExprs[stmt].ref;
+	}
 	Vtype getStmtVtype(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
 	   return mExprs[stmt];
@@ -392,7 +401,16 @@ public:
 			llvm::errs() << "\n";
 			#endif
 			return 0;
-	   } else {
+	   } else if(callee == mMalloc) {
+			Expr * decl = callexpr->getArg(0);
+		   val = mStack.back().getStmtVal(decl);
+			mStack.back().bindStmtRef(callexpr, malloc(val));
+			return 0;
+		} else if(callee == mFree) {
+			Expr * decl = callexpr->getArg(0);
+			free(mStack.back().getStmtAddr(decl));
+			return 0;
+		} else {
 			std::string calleeName = callexpr->getDirectCallee()->getNameAsString();
 			FunctionDecl* funcdecl = getFunc(calleeName);
 			std::vector<int> args(callexpr->getNumArgs(), 0);
@@ -407,6 +425,7 @@ public:
 		   /// You could add your code here for Function call Return
 			return funcdecl;
 	   }
+		return 0;
    }
 
 	void funcRet(CallExpr* call) {
