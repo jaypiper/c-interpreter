@@ -101,7 +101,6 @@ public:
    }
 	void* getStmtAddr(Stmt* stmt) {
 		assert (mExprs.find(stmt) != mExprs.end());
-		assert (mExprs[stmt].type == TREF);
 		return mExprs[stmt].ref;
 	}
 	Vtype getStmtVtype(Stmt * stmt) {
