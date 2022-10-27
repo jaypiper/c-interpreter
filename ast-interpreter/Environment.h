@@ -23,6 +23,7 @@ typedef struct VType{
 		int idx;
 		int* ref;
 	};
+	int ptr_sz;
 }Vtype;
 
 class StackFrame {
@@ -56,6 +57,15 @@ public:
 	void bindDeclVtype(Decl* decl, Vtype type) {
 		mVars[decl] = type;
 	}
+	void bindDeclVtypeExceptSz(Decl* decl, Vtype type) {
+		if(mVars.find(decl) == mVars.end()) {
+			mVars[decl] = type;
+		} else {
+			int sz = mVars[decl].ptr_sz;
+			mVars[decl] = type;
+			mVars[decl].ptr_sz = sz;
+		}
+	}
 	uintptr_t getDeclVal(Decl* decl) {
 		assert (mVars.find(decl) != mVars.end());
 		if(mVars[decl].type == TREF) return *(mVars[decl].ref);
@@ -78,13 +88,14 @@ public:
 	void bindStmtVtype(Stmt* stmt, Vtype vtype) {
 		mExprs[stmt] = vtype;
 	}
-	void bindStmtRef(Stmt* stmt, void* addr) {
+	void bindStmtRef(Stmt* stmt, void* addr, int sz=1) {
 		mExprs[stmt].type = TREF;
 		mExprs[stmt].ref = (int*)addr;
+		mExprs[stmt].ptr_sz = sz;
 	}
    uintptr_t getStmtVal(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
-		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref);
+		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref); // TODO: remove tref
 	   return mExprs[stmt].val;
    }
 	void* getStmtAddr(Stmt* stmt) {
@@ -189,7 +200,17 @@ public:
 		}
 		return heap.getVarInt(decl);
 	}
-
+	uintptr_t getrefval(Vtype vtype) {
+		if(vtype.ptr_sz == 1) return *(uint8_t*)vtype.ref;
+		if(vtype.ptr_sz == 4) return *(uint32_t*)vtype.ref;
+		if(vtype.ptr_sz == 8) return *(uint64_t*)vtype.ref;
+		assert(0 && "invalid vtype size");
+	}
+	void setrefval(Vtype vtype, uintptr_t value, int sz) {
+		if(sz == 1) *(uint8_t*)vtype.ref = value;
+		if(sz == 4) *(uint32_t*)vtype.ref = value;
+		if(sz == 8) *(uint64_t*)vtype.ref = value;
+	}
 	void addFunc(std::string str, FunctionDecl* func) {
 		funcDef[str] = func;
 	}
@@ -227,7 +248,7 @@ public:
 		if(isfuncRet) return;
 	   Expr * left = bop->getLHS();
 	   Expr * right = bop->getRHS();
-		int bop_val = 0;
+		uintptr_t bop_val = 0;
 	   if (bop->isAssignmentOp()) {
 			Vtype val = mStack.back().getStmtVtype(right);
 			bop_val = val.val;
@@ -235,7 +256,7 @@ public:
 				mStack.back().bindStmtVtype(left, val);
 			   Decl * decl = declexpr->getFoundDecl();
 				if (VarDecl * vardecl = dyn_cast<VarDecl>(decl)) {
-					mStack.back().bindDeclVtype(vardecl, val);
+					mStack.back().bindDeclVtypeExceptSz(vardecl, val);
 		   	}
 		   } else if(ArraySubscriptExpr * arrayexpr = dyn_cast<ArraySubscriptExpr>(left)) {
 				Vtype type = mStack.back().getStmtVtype(left);
@@ -244,7 +265,7 @@ public:
 				Vtype type = mStack.back().getStmtVtype(left);
 				if(type.type == TREF) {
 					mStack.back().bindStmtInt(left, val.val);
-					*(type.ref) = val.val;
+					setrefval(type, val.val, type.ptr_sz);
 				} else {
 					assert(0);
 				}
@@ -288,6 +309,7 @@ public:
 			val.val = -val.val;
 			mStack.back().bindStmtVtype(uop, val);
 		} else if(uop->getOpcode() == UO_Deref) {
+			val.type = TREF;
 			mStack.back().bindStmtVtype(uop, val);
 		}
 	}
@@ -333,7 +355,9 @@ public:
 				mStack.back().bindArrayDecl(dec, entry_num); //array num
 			} else if (dectype->isArrayType()){
 				assert(0);
-			} else{
+			} else if(dectype->isPointerType()) {
+				mStack.back().bindDeclVtype(dec, {.type=TINT, .val=0, .ptr_sz=8});
+			} else {
 				mStack.back().bindDeclInt(dec, 0);
 
 			}
@@ -372,6 +396,8 @@ public:
 		} else if (declref->getType()->isPointerType()) {
 			Decl* decl = declref->getFoundDecl();
 			Vtype vtype = mStack.back().getDeclVtype(decl);
+			vtype.type = TINT;
+			// TODO: all declref is TINT
 			mStack.back().bindStmtVtype(declref, vtype);
 		} else {
 			Vtype dummyVtype;
@@ -386,6 +412,14 @@ public:
 		QualType castQType = castexpr->getType();
 		const Type* casttype = castQType.getTypePtr();
 		Vtype val = mStack.back().getStmtVtype(castexpr->getSubExpr());
+		if(castexpr->getCastKind() == CK_LValueToRValue) {
+			if (val.type == TREF) {
+				val.val = getrefval(val);
+				val.type = TINT;
+			}
+		} else if(castexpr->getCastKind() == CK_BitCast) {
+			//TODO
+		}
 		mStack.back().bindStmtVtype(castexpr, val);
 		return;
 #if 0
