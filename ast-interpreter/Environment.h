@@ -21,7 +21,7 @@ typedef struct VType{
 	union {
 		int64_t val;
 		int idx;
-		int* ref;
+		void* ref;
 	};
 	int ptr_sz;
 }Vtype;
@@ -31,7 +31,7 @@ class StackFrame {
    /// Which are either integer or addresses (also represented using an Integer value)
    std::map<Decl*, Vtype> mVars;
    std::map<Stmt*, Vtype> mExprs;
-	int arrayVals[4096];
+	intptr_t arrayVals[4096];
 	int arridx = 0;
    /// The current stmt
    Stmt * mPC;
@@ -70,7 +70,7 @@ public:
 	}
 	intptr_t getDeclVal(Decl* decl) {
 		assert (mVars.find(decl) != mVars.end());
-		if(mVars[decl].type == TREF) return *(mVars[decl].ref);
+		if(mVars[decl].type == TREF) return *((int*)mVars[decl].ref);
 		return mVars[decl].val;
 	}
 	Vtype getDeclVtype(Decl* decl){
@@ -98,7 +98,7 @@ public:
 	}
    intptr_t getStmtVal(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
-		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref); // TODO: remove tref
+		if(mExprs[stmt].type == TREF) return *((int*)mExprs[stmt].ref); // TODO: remove tref
 	   return mExprs[stmt].val;
    }
 	void* getStmtAddr(Stmt* stmt) {
@@ -109,8 +109,8 @@ public:
 	   assert (mExprs.find(stmt) != mExprs.end());
 	   return mExprs[stmt];
    }
-	int* getref(int idx){
-		return &arrayVals[idx];
+	void* getref(int idx){
+		return (void*)&arrayVals[idx];
 	}
    void setPC(Stmt * stmt) {
 	   mPC = stmt;
@@ -269,7 +269,7 @@ public:
 		   	}
 		   } else if(ArraySubscriptExpr * arrayexpr = dyn_cast<ArraySubscriptExpr>(left)) {
 				Vtype type = mStack.back().getStmtVtype(left);
-				*(type.ref) = val.val;
+				setrefval(type, val.val, type.ptr_sz);
 			} else if(UnaryOperator* unaryexpr = dyn_cast<UnaryOperator>(left)) {
 				Vtype type = mStack.back().getStmtVtype(left);
 				if(type.type == TREF) {
@@ -527,7 +527,11 @@ public:
 		if(isfuncRet) return;
 		Vtype vidx = mStack.back().getStmtVtype(expr->getIdx());
 		VType	vbase = mStack.back().getStmtVtype(expr->getBase());
-		Vtype vtype = {.type = TREF, .ref = mStack.back().getref(vbase.idx + vidx.val), .ptr_sz = 4};
+		int ptr_sz = 4;
+		if(expr->getBase()->getType()->isCharType()) ptr_sz = 1;
+		else if(expr->getBase()->getType()->isIntegerType()) ptr_sz = 4;
+		else if(expr->getBase()->getType()->isPointerType()) ptr_sz = 8;
+		Vtype vtype = {.type = TREF, .ref = mStack.back().getref(vbase.idx + vidx.val), .ptr_sz = ptr_sz};
 		mStack.back().bindStmtVtype(expr, vtype);
 	}
 
