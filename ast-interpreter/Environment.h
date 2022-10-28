@@ -211,6 +211,12 @@ public:
 		if(sz == 4) *(uint32_t*)vtype.ref = value;
 		if(sz == 8) *(uint64_t*)vtype.ref = value;
 	}
+	int getTypeLen(QualType type) {
+		if(type->isCharType()) return 1;
+		if(type->isIntegerType()) return 4;
+		if(type->isPointerType()) return 8;
+		assert(0);
+	}
 	void addFunc(std::string str, FunctionDecl* func) {
 		funcDef[str] = func;
 	}
@@ -347,29 +353,19 @@ public:
 		if (dec->hasInit()){
 			APValue* value = dec->evaluateValue();
 			assert(value->isInt());
-			mStack.back().bindDeclInt(dec, value->getInt().getExtValue());
+			int len = getTypeLen(dec->getType());
+			mStack.back().bindDeclInt(dec, value->getInt().getExtValue(), len);
 		} else {
 			const Type* dectype = dec->getType().getTypePtr();
 			if (dectype->isConstantArrayType()) {
 				const ConstantArrayType* arrtype = dyn_cast<ConstantArrayType>(dectype);
 				int entry_num = arrtype->getSize().getZExtValue();
-
 				mStack.back().bindArrayDecl(dec, entry_num); //array num
 			} else if (dectype->isArrayType()){
 				assert(0);
 			} else if(dectype->isPointerType()) {
 				const PointerType* ptype = dectype->getAs<PointerType>();
-				int ptr_sz = 1;
-				if(ptype->getPointeeType()->isCharType()) {
-					ptr_sz = 1;
-				} else if (ptype->getPointeeType()->isIntegerType()) {
-					ptr_sz = 4;
-				} else if (ptype->getPointeeType()->isPointerType()) {
-					ptr_sz = 8;
-				} else {
-					std::cout << "invalid pointer type " << dec->getType().getAsString() << std::endl;
-					assert(0);
-				}
+				int ptr_sz = getTypeLen(ptype->getPointeeType());
 				mStack.back().bindDeclVtype(dec, {.type=TINT, .val=0, .ptr_sz=ptr_sz});
 			} else {
 				mStack.back().bindDeclInt(dec, 0);
