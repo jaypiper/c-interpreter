@@ -358,7 +358,19 @@ public:
 			} else if (dectype->isArrayType()){
 				assert(0);
 			} else if(dectype->isPointerType()) {
-				mStack.back().bindDeclVtype(dec, {.type=TINT, .val=0, .ptr_sz=8});
+				const PointerType* ptype = dectype->getAs<PointerType>();
+				int ptr_sz = 1;
+				if(ptype->getPointeeType()->isCharType()) {
+					ptr_sz = 1;
+				} else if (ptype->getPointeeType()->isIntegerType()) {
+					ptr_sz = 4;
+				} else if (ptype->getPointeeType()->isPointerType()) {
+					ptr_sz = 8;
+				} else {
+					std::cout << "invalid pointer type " << dec->getType().getAsString() << std::endl;
+					assert(0);
+				}
+				mStack.back().bindDeclVtype(dec, {.type=TINT, .val=0, .ptr_sz=ptr_sz});
 			} else {
 				mStack.back().bindDeclInt(dec, 0);
 
