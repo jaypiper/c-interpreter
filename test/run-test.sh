@@ -1,6 +1,9 @@
 mkdir -p build
+pass=0
+count=0
 for i in {0..24}
 do
+   count=`expr ${count} + 1`
    idx="$i"
    if [ $i -lt 10 ]; then
       idx="0$i"
@@ -16,5 +19,8 @@ do
       echo "test$idx fail...."
    else
       echo "test$idx pass!!"
+      pass=`expr ${pass} + 1`
    fi
 done
+
+echo $pass/$count passed!!
