@@ -481,14 +481,14 @@ public:
 		} else {
 			std::string calleeName = callexpr->getDirectCallee()->getNameAsString();
 			FunctionDecl* funcdecl = getFunc(calleeName);
-			std::vector<uintptr_t> args(callexpr->getNumArgs(), 0);
+			std::vector<Vtype> args(callexpr->getNumArgs());
 			for(int i = 0; i < callexpr->getNumArgs(); i++) {
 				Expr * decl = callexpr->getArg(i);
-				args[i] = mStack.back().getStmtVal(decl);
+				args[i] = mStack.back().getStmtVtype(decl);
 			}
 			mStack.push_back(StackFrame()); // new frame
 			for(int i = 0; i < funcdecl->getNumParams(); i++) {
-				mStack.back().bindDeclInt(funcdecl->getParamDecl(i), args[i]);
+				mStack.back().bindDeclVtype(funcdecl->getParamDecl(i), args[i]);
 			}
 		   /// You could add your code here for Function call Return
 			return funcdecl;
