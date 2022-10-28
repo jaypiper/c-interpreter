@@ -51,6 +51,7 @@ public:
 		int idx = arridx;
 		mVars[decl].type = TARRAY;
 		mVars[decl].idx = idx;
+		mVars[decl].ptr_sz = 4;
 		for(int i = 0; i < num; i++) {
 			arrayVals[arridx++];
 		}
@@ -526,7 +527,7 @@ public:
 		if(isfuncRet) return;
 		Vtype vidx = mStack.back().getStmtVtype(expr->getIdx());
 		VType	vbase = mStack.back().getStmtVtype(expr->getBase());
-		Vtype vtype = {.type = TREF, .ref = mStack.back().getref(vbase.idx + vidx.val)};
+		Vtype vtype = {.type = TREF, .ref = mStack.back().getref(vbase.idx + vidx.val), .ptr_sz = 4};
 		mStack.back().bindStmtVtype(expr, vtype);
 	}
 
