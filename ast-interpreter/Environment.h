@@ -209,8 +209,9 @@ public:
 	}
 	void setrefval(Vtype vtype, intptr_t value, int sz) {
 		if(sz == 1) *(uint8_t*)vtype.ref = value;
-		if(sz == 4) *(uint32_t*)vtype.ref = value;
-		if(sz == 8) *(uint64_t*)vtype.ref = value;
+		else if(sz == 4) *(uint32_t*)vtype.ref = value;
+		else if(sz == 8) *(uint64_t*)vtype.ref = value;
+		else assert(0);
 	}
 	int getTypeLen(QualType type) {
 		if(type->isCharType()) return 1;
