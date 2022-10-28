@@ -85,6 +85,7 @@ public:
    void bindStmtInt(Stmt * stmt, uintptr_t val) {
 	   mExprs[stmt].type = TINT;
 		mExprs[stmt].val = val;
+		mExprs[stmt].ptr_sz = 1;
    }
 	void bindStmtVtype(Stmt* stmt, Vtype vtype) {
 		mExprs[stmt] = vtype;
