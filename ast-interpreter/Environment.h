@@ -481,7 +481,7 @@ public:
 		} else {
 			std::string calleeName = callexpr->getDirectCallee()->getNameAsString();
 			FunctionDecl* funcdecl = getFunc(calleeName);
-			std::vector<int> args(callexpr->getNumArgs(), 0);
+			std::vector<uintptr_t> args(callexpr->getNumArgs(), 0);
 			for(int i = 0; i < callexpr->getNumArgs(); i++) {
 				Expr * decl = callexpr->getArg(i);
 				args[i] = mStack.back().getStmtVal(decl);
