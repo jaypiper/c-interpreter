@@ -98,7 +98,7 @@ public:
 	}
    intptr_t getStmtVal(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
-		if(mExprs[stmt].type == TREF) return *((int*)mExprs[stmt].ref); // TODO: remove tref
+		// if(mExprs[stmt].type == TREF) return *((int*)mExprs[stmt].ref); // TODO: remove tref
 	   return mExprs[stmt].val;
    }
 	void* getStmtAddr(Stmt* stmt) {
@@ -287,10 +287,11 @@ public:
 			intptr_t val_r = mStack.back().getStmtVal(right);
 			intptr_t val_l = mStack.back().getStmtVal(left);
 			intptr_t newval = 0;
+			int ptr_sz = type_l.type == TREF ? type_l.ptr_sz : 1;
 			switch(bop->getOpcode()){
 				case BO_Mul:	newval = val_r * val_l; break;
-				case BO_Add:   val_r *= type_l.ptr_sz; newval = val_l + val_r; break;
-				case BO_Sub:   val_r *= type_l.ptr_sz; newval = val_l - val_r; break;
+				case BO_Add:   val_r *= ptr_sz; newval = val_l + val_r; break;
+				case BO_Sub:   val_r *= ptr_sz; newval = val_l - val_r; break;
 				case BO_Shl:   newval = val_l << val_r; break;
 				case BO_Shr:   newval = val_l >> val_r; break;
 				case BO_EQ:  	newval = val_r == val_l; break;
@@ -429,6 +430,7 @@ public:
 				val.val = getrefval(val);
 				val.type = TINT;
 			}
+			if (castexpr->getType()->isPointerType()) val.type = TREF;
 		} else if(castexpr->getCastKind() == CK_BitCast) {
 			//TODO
 		}
