@@ -42,7 +42,7 @@ public:
 		ret = NULL;
    }
 
-   void bindDeclInt(Decl* decl, uintptr_t val) {
+   void bindDeclInt(Decl* decl, intptr_t val) {
       mVars[decl].type = TINT;
 		mVars[decl].val  = val;
 		mVars[decl].ptr_sz  = 1;
@@ -67,7 +67,7 @@ public:
 			mVars[decl].ptr_sz = sz;
 		}
 	}
-	uintptr_t getDeclVal(Decl* decl) {
+	intptr_t getDeclVal(Decl* decl) {
 		assert (mVars.find(decl) != mVars.end());
 		if(mVars[decl].type == TREF) return *(mVars[decl].ref);
 		return mVars[decl].val;
@@ -82,7 +82,7 @@ public:
 	int getArrayDeclVal(Decl* decl, int idx) {
 		return arrayVals[mVars[decl].idx + idx];
 	}
-   void bindStmtInt(Stmt * stmt, uintptr_t val) {
+   void bindStmtInt(Stmt * stmt, intptr_t val) {
 	   mExprs[stmt].type = TINT;
 		mExprs[stmt].val = val;
 		mExprs[stmt].ptr_sz = 1;
@@ -95,7 +95,7 @@ public:
 		mExprs[stmt].ref = (int*)addr;
 		mExprs[stmt].ptr_sz = sz;
 	}
-   uintptr_t getStmtVal(Stmt * stmt) {
+   intptr_t getStmtVal(Stmt * stmt) {
 	   assert (mExprs.find(stmt) != mExprs.end());
 		if(mExprs[stmt].type == TREF) return *(mExprs[stmt].ref); // TODO: remove tref
 	   return mExprs[stmt].val;
@@ -201,13 +201,13 @@ public:
 		}
 		return heap.getVarInt(decl);
 	}
-	uintptr_t getrefval(Vtype vtype) {
+	intptr_t getrefval(Vtype vtype) {
 		if(vtype.ptr_sz == 1) return *(uint8_t*)vtype.ref;
 		if(vtype.ptr_sz == 4) return *(uint32_t*)vtype.ref;
 		if(vtype.ptr_sz == 8) return *(uint64_t*)vtype.ref;
 		assert(0 && "invalid vtype size");
 	}
-	void setrefval(Vtype vtype, uintptr_t value, int sz) {
+	void setrefval(Vtype vtype, intptr_t value, int sz) {
 		if(sz == 1) *(uint8_t*)vtype.ref = value;
 		if(sz == 4) *(uint32_t*)vtype.ref = value;
 		if(sz == 8) *(uint64_t*)vtype.ref = value;
@@ -282,9 +282,9 @@ public:
 	   } else {
 			Vtype type_l = mStack.back().getStmtVtype(left);
 			bop_type = type_l;
-			uintptr_t val_r = mStack.back().getStmtVal(right);
-			uintptr_t val_l = mStack.back().getStmtVal(left);
-			uintptr_t newval = 0;
+			intptr_t val_r = mStack.back().getStmtVal(right);
+			intptr_t val_l = mStack.back().getStmtVal(left);
+			intptr_t newval = 0;
 			switch(bop->getOpcode()){
 				case BO_Mul:	newval = val_r * val_l; break;
 				case BO_Add:   val_r *= type_l.ptr_sz; newval = val_l + val_r; break;
@@ -354,8 +354,7 @@ public:
 		if (dec->hasInit()){
 			APValue* value = dec->evaluateValue();
 			assert(value->isInt());
-			int len = getTypeLen(dec->getType());
-			mStack.back().bindDeclInt(dec, value->getInt().getExtValue(), len);
+			mStack.back().bindDeclInt(dec, value->getInt().getExtValue());
 		} else {
 			const Type* dectype = dec->getType().getTypePtr();
 			if (dectype->isConstantArrayType()) {
